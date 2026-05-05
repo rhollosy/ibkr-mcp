@@ -1,0 +1,39 @@
+{
+  "context": {
+    "loadMemoryFromIncludeDirectories": false
+  },
+  "general": {
+    "defaultApprovalMode": "auto_edit",
+    "enableNotifications": true
+  },
+  "ui": {
+    "inlineThinkingMode": "full",
+    "showStatusInTitle": true,
+    "footer": {
+      "hideContextPercentage": false
+    },
+    "showMemoryUsage": true,
+    "showCitations": true,
+    "showModelInfoInChat": true,
+    "terminalBuffer": true,
+    "loadingPhrases": "all"
+  },
+  "model": {
+    "name": ""
+  },
+  "mcpServers": {
+    "ibkr": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/Users/robert/git/ibkr-mcp",
+        "run",
+        "src/main.py"
+      ],
+      "env": {
+        "IBKR_GATEWAY_VERIFY_SSL": "false",
+        "IBKR_GATEWAY_URL": "https://localhost:5001/v1/api"
+      }
+    }
+  }
+}

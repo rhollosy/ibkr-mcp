@@ -1,0 +1,7 @@
+fastmcp
+httpx
+pydantic
+pytest
+pytest-cov
+pytest-asyncio
+ruff
