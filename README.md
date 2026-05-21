@@ -50,6 +50,46 @@ export IBKR_GATEWAY_VERIFY_SSL="false"
 uvx --from git+https://github.com/rhollosy/ibkr-mcp ibkr-mcp
 ```
 
+#### Container (Docker / OCI)
+
+A minimal, security-hardened image is available via the included `Dockerfile`.
+The image runs as a **non-root user** and contains only the runtime artefacts.
+
+**Build locally:**
+```bash
+docker build -t ibkr-mcp .
+```
+
+**Run:**
+```bash
+docker run --rm -i \
+  -e IBKR_GATEWAY_URL="https://host.docker.internal:5001/v1/api" \
+  -e IBKR_GATEWAY_VERIFY_SSL="false" \
+  ibkr-mcp
+```
+
+> [!NOTE]
+> The server uses **stdio** transport (stdin/stdout). Pass `-i` (interactive) so
+> the MCP host can write to the container's stdin. On Linux replace
+> `host.docker.internal` with your host IP or `--network=host`.
+
+**Configure an AI agent to use the container** (example for Claude Desktop / Gemini):
+```json
+{
+  "mcpServers": {
+    "ibkr": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "IBKR_GATEWAY_URL=https://host.docker.internal:5001/v1/api",
+        "-e", "IBKR_GATEWAY_VERIFY_SSL=false",
+        "ibkr-mcp"
+      ]
+    }
+  }
+}
+```
+
 ## AI Agent Integration
 For detailed instructions on how to configure this server with AI agents like Gemini or Claude Desktop, see the [Setup & Integration Guide](docs/setup.md).
 

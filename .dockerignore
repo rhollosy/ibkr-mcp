@@ -1,0 +1,42 @@
+# ── VCS ──────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+.github
+
+# ── Virtual environments & caches ────────────────────────────────────────────
+.venv
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+.pytest_cache
+.ruff_cache
+.coverage
+htmlcov
+build
+dist
+*.egg-info
+
+# ── Dev / test artefacts ─────────────────────────────────────────────────────
+tests
+scripts
+
+# ── IDE / OS noise ───────────────────────────────────────────────────────────
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+
+# ── Agent / tooling config (not needed at runtime) ───────────────────────────
+.claude
+.gemini
+.specify
+specs
+docs
+
+# ── Secrets / local overrides ────────────────────────────────────────────────
+.env
+.env.*
+*.local.json
+*.local.yml
+*.local.yaml

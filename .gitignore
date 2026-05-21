@@ -49,3 +49,16 @@ Thumbs.db
 *.local.json
 *.local.yml
 *.local.yaml
+
+# AI agent / tooling config – private; keep in personal/dev branches only
+.gemini/
+.claude/
+.specify/
+GEMINI.md
+CLAUDE.md
+
+# Internal planning docs
+specs/
+
+# Legacy pip file (superseded by pyproject.toml)
+requirements.txt
