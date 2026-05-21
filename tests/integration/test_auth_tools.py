@@ -22,6 +22,7 @@ async def test_get_auth_status_tool_unauthenticated():
     mock_status = {"authenticated": False}
     with patch("mcp_server.tools.get_client") as mock_get_client:
         mock_client = AsyncMock()
+        mock_client.base_url = "https://mock-gateway/v1/api"
         mock_client.get_auth_status.return_value = mock_status
         mock_get_client.return_value = mock_client
         

@@ -5,6 +5,7 @@ from typing import Any
 import httpx
 
 from .exceptions import AuthenticationError, GatewayTimeoutError, RequestError
+from .models import Account, Contract, MarketDataSnapshot, Order, Position
 
 logger = logging.getLogger(__name__)
 
@@ -44,28 +45,36 @@ class IBKRClient:
         """T009: Implement heartbeat/auth-status check method."""
         return await self._request("GET", "/iserver/auth/status")
 
-    async def get_accounts(self) -> list[dict[str, Any]]:
+    async def get_accounts(self) -> list[Account]:
         """List all accounts."""
-        return await self._request("GET", "/portfolio/accounts")
+        raw_accounts = await self._request("GET", "/portfolio/accounts")
+        return [Account.model_validate(a) for a in raw_accounts]
 
     async def get_account_summary(self, account_id: str) -> dict[str, Any]:
         """Get summary for a specific account."""
         return await self._request("GET", f"/portfolio/{account_id}/summary")
 
-    async def get_positions(self, account_id: str) -> list[dict[str, Any]]:
+    async def get_positions(self, account_id: str) -> list[Position]:
         """Get positions for a specific account."""
-        return await self._request("GET", f"/portfolio/{account_id}/positions")
+        raw_positions = await self._request("GET", f"/portfolio/{account_id}/positions")
+        return [Position.model_validate(p) for p in raw_positions]
 
-    async def search_contract(self, symbol: str) -> list[dict[str, Any]]:
+    async def search_contract(self, symbol: str) -> list[Contract]:
         """Search for a contract by symbol."""
         params = {"symbol": symbol}
-        return await self._request("GET", "/iserver/secdef/search", params=params)
+        raw_contracts = await self._request(
+            "GET", "/iserver/secdef/search", params=params
+        )
+        return [Contract.model_validate(c) for c in raw_contracts]
 
-    async def get_market_data(self, conids: list[int]) -> list[dict[str, Any]]:
+    async def get_market_data(self, conids: list[int]) -> list[MarketDataSnapshot]:
         """Get market data snapshot for contract IDs."""
         conid_str = ",".join(map(str, conids))
         params = {"conids": conid_str, "fields": "31,84,86,82"}
-        return await self._request("GET", "/iserver/marketdata/snapshot", params=params)
+        raw_snapshots = await self._request(
+            "GET", "/iserver/marketdata/snapshot", params=params
+        )
+        return [MarketDataSnapshot.model_validate(s) for s in raw_snapshots]
 
     async def place_orders(
         self, account_id: str, orders: list[dict[str, Any]]
@@ -88,7 +97,17 @@ class IBKRClient:
 
     async def get_open_orders(self) -> dict[str, Any]:
         """Get all open orders."""
-        return await self._request("GET", "/iserver/account/orders")
+        raw_data = await self._request("GET", "/iserver/account/orders")
+        orders = raw_data.get("orders", [])
+        raw_data["orders"] = [Order.model_validate(o) for o in orders]
+        return raw_data
+
+    async def reply_to_confirmation(
+        self, reply_id: str, confirmed: bool
+    ) -> list[dict[str, Any]]:
+        """Reply to a Gateway-issued order confirmation question."""
+        path = f"/iserver/reply/{reply_id}"
+        return await self._request("POST", path, json={"confirmed": confirmed})
 
     async def close(self):
         await self.client.aclose()

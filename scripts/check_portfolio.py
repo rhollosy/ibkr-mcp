@@ -9,6 +9,7 @@ sys.path.append(str(Path(__file__).parent.parent / "src"))
 
 from ibkr.client import IBKRClient
 
+
 async def main():
     base_url = os.getenv("IBKR_GATEWAY_URL", "https://localhost:5001/v1/api")
     client = IBKRClient(base_url=base_url)

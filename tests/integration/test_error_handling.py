@@ -12,6 +12,7 @@ from mcp_server.tools import (
     get_positions,
     modify_order,
     place_order,
+    reply_to_confirmation,
     search_contract,
 )
 
@@ -67,3 +68,8 @@ async def test_cancel_order_error(mock_error_client):
 async def test_get_open_orders_error(mock_error_client):
     mock_error_client.get_open_orders.side_effect = RequestError("Fail")
     assert "Error: Fail" in await get_open_orders()
+
+@pytest.mark.asyncio
+async def test_reply_to_confirmation_error(mock_error_client):
+    mock_error_client.reply_to_confirmation.side_effect = RequestError("Fail")
+    assert "Error: Fail" in await reply_to_confirmation("R1", True)
