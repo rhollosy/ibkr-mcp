@@ -2,7 +2,14 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from mcp_server.tools import cancel_order, get_open_orders, modify_order, place_order
+from ibkr.models import Order
+from mcp_server.tools import (
+    cancel_order,
+    get_open_orders,
+    modify_order,
+    place_order,
+    reply_to_confirmation,
+)
 
 
 @pytest.mark.asyncio
@@ -56,7 +63,17 @@ async def test_cancel_order_tool():
 
 @pytest.mark.asyncio
 async def test_get_open_orders_tool():
-    mock_response = {"orders": [{"orderId": "1001", "side": "BUY", "totalQuantity": 10, "remainingQuantity": 10, "symbol": "AAPL", "status": "Submitted"}]}
+    mock_orders = [
+        Order(
+            orderId="1001",
+            side="BUY",
+            totalQuantity=10,
+            remainingQuantity=10,
+            symbol="AAPL",
+            status="Submitted",
+        )
+    ]
+    mock_response = {"orders": mock_orders}
     with patch("mcp_server.tools.get_client") as mock_get_client:
         mock_client = AsyncMock()
         mock_client.get_open_orders.return_value = mock_response
@@ -66,3 +83,15 @@ async def test_get_open_orders_tool():
         assert "Open Orders" in result
         assert "AAPL" in result
         assert "Submitted" in result
+
+@pytest.mark.asyncio
+async def test_reply_to_confirmation_tool():
+    mock_response = [{"order_id": "1001", "order_status": "submitted"}]
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.reply_to_confirmation.return_value = mock_response
+        mock_get_client.return_value = mock_client
+        
+        result = await reply_to_confirmation("reply-123", True)
+        assert "Reply Result" in result
+        assert "submitted" in result
