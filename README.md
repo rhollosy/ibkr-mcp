@@ -6,48 +6,121 @@ MCP server for Interactive Brokers Web API (Client Portal API).
 > **DISCLAIMER**: Trading financial instruments involves significant risk and can result in the loss of all your capital. This software is provided "as is" without warranty of any kind. Use of this software is at your own risk and peril. The author(s) and contributors are not responsible for any financial losses, technical errors, or other damages resulting from the use of this software. Always test in a paper trading environment before using with real capital.
 
 ## Features
+
 - **Connection Check**: Verify Gateway status and session auth.
 - **Account Discovery**: List available accounts and summaries.
 - **Portfolio Monitoring**: View real-time positions.
 - **Market Data**: Search contracts and get price snapshots.
 - **Order Management**: Place, modify, and cancel orders.
+- **Order Confirmations**: Native handling of Gateway confirmation dialogs.
 - **Duplicate Detection**: Native warning bubbling for duplicate orders.
 - **Latency Monitoring**: Automatic warnings for slow gateway responses.
+- **Session Keepalive**: Background heartbeat keeps the Gateway session alive.
 
 ## Setup & Running
 
 ### Prerequisites
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv)
-- [IBKR Client Portal API Gateway](https://www.interactivebrokers.com/en/trading/ibkr-api.php)
 
-### 1. Setup the IBKR Gateway
-Follow the instructions in [docs/setup.md](docs/setup.md) to install and configure the IBKR Client Portal Gateway. Note that the Gateway URL is configurable via environment variables.
+- [IBKR Client Portal API Gateway](https://www.interactivebrokers.com/en/trading/ibkr-api.php) running locally
+- See [docs/setup.md](docs/setup.md) for full Gateway installation & configuration
 
-### 2. Environment Variables
-The server requires the following variables:
-- `IBKR_GATEWAY_URL`: e.g., `https://localhost:5001/v1/api`
-- `IBKR_GATEWAY_VERIFY_SSL`: `false` (recommended for local dev with self-signed certs)
+### Environment Variables
 
-### 3. Install Dependencies
+| Variable | Description | Example |
+|---|---|---|
+| `IBKR_GATEWAY_URL` | Full base URL of the Gateway API | `https://localhost:5001/v1/api` |
+| `IBKR_GATEWAY_VERIFY_SSL` | Disable SSL verification for self-signed certs | `false` |
+
+### Running the MCP Server
+
+Choose the deployment method that suits your workflow. All options expose identical MCP tools over **stdio** transport.
+
+---
+
+#### Option A — `uvx` (no install required)
+
+Runs the server directly from the remote repository. Requires [uv](https://github.com/astral-sh/uv).
+
 ```bash
-uv sync
+uvx --from git+https://github.com/rhollosy/ibkr-mcp ibkr-mcp \
+  --env IBKR_GATEWAY_URL="https://localhost:5001/v1/api" \
+  --env IBKR_GATEWAY_VERIFY_SSL="false"
 ```
 
-### 4. Run the Server
-#### Local Development
+---
+
+#### Option B — Docker (no Python required)
+
+A minimal, security-hardened OCI image. Runs as a non-root user. No Python or uv installation needed on the host.
+
 ```bash
+# Build once
+docker build -t ibkr-mcp https://github.com/rhollosy/ibkr-mcp.git
+
+# Run
+docker run --rm -i \
+  -e IBKR_GATEWAY_URL="https://host.docker.internal:5001/v1/api" \
+  -e IBKR_GATEWAY_VERIFY_SSL="false" \
+  ibkr-mcp
+```
+
+> [!NOTE]
+> Pass `-i` (interactive) so the MCP host can write to stdin. On Linux replace
+> `host.docker.internal` with your host IP or use `--network=host`.
+
+---
+
+#### Option C — Local Clone (development)
+
+```bash
+git clone https://github.com/rhollosy/ibkr-mcp
+cd ibkr-mcp
+uv sync
 export IBKR_GATEWAY_URL="https://localhost:5001/v1/api"
 export IBKR_GATEWAY_VERIFY_SSL="false"
 uv run src/main.py
 ```
 
-#### Remote Execution (via uvx)
-You can also run the server directly from the remote repository without cloning:
+---
+
+#### Container (Docker / OCI)
+
+A minimal, security-hardened image is available via the included `Dockerfile`.
+The image runs as a **non-root user** and contains only the runtime artefacts.
+
+**Build locally:**
 ```bash
-export IBKR_GATEWAY_URL="https://localhost:5001/v1/api"
-export IBKR_GATEWAY_VERIFY_SSL="false"
-uvx --from git+https://github.com/rhollosy/ibkr-mcp ibkr-mcp
+docker build -t ibkr-mcp .
+```
+
+**Run:**
+```bash
+docker run --rm -i \
+  -e IBKR_GATEWAY_URL="https://host.docker.internal:5001/v1/api" \
+  -e IBKR_GATEWAY_VERIFY_SSL="false" \
+  ibkr-mcp
+```
+
+> [!NOTE]
+> The server uses **stdio** transport (stdin/stdout). Pass `-i` (interactive) so
+> the MCP host can write to the container's stdin. On Linux replace
+> `host.docker.internal` with your host IP or `--network=host`.
+
+**Configure an AI agent to use the container** (example for Claude Desktop / Gemini):
+```json
+{
+  "mcpServers": {
+    "ibkr": {
+      "command": "docker",
+      "args": [
+        "run", "--rm", "-i",
+        "-e", "IBKR_GATEWAY_URL=https://host.docker.internal:5001/v1/api",
+        "-e", "IBKR_GATEWAY_VERIFY_SSL=false",
+        "ibkr-mcp"
+      ]
+    }
+  }
+}
 ```
 
 #### Container (Docker / OCI)
@@ -91,20 +164,24 @@ docker run --rm -i \
 ```
 
 ## AI Agent Integration
-For detailed instructions on how to configure this server with AI agents like Gemini or Claude Desktop, see the [Setup & Integration Guide](docs/setup.md).
+
+For detailed per-agent configuration (Gemini CLI, Claude Desktop, VS Code) covering all three deployment methods, see the **[Setup & Integration Guide](docs/setup.md)**.
 
 ## Available Tools
 
-- `get_auth_status()`: Checks Gateway connection and session.
-- `get_accounts()`: Lists all accounts.
-- `get_account_summary(account_id)`: Detailed balances.
-- `get_positions(account_id)`: Active portfolio holdings.
-- `search_contract(symbol)`: Look up conids.
-- `get_market_data(conid)`: Current price snapshot.
-- `place_order(...)`: Submit new orders.
-- `modify_order(...)`: Adjust active orders.
-- `cancel_order(...)`: Cancel active orders.
-- `get_open_orders()`: List active orders.
+| Tool | Description |
+|---|---|
+| `get_auth_status()` | Check Gateway connection and session |
+| `get_accounts()` | List all accounts |
+| `get_account_summary(account_id)` | Detailed balances |
+| `get_positions(account_id)` | Active portfolio holdings |
+| `search_contract(symbol)` | Look up contract IDs (conids) |
+| `get_market_data(conid)` | Current price snapshot |
+| `place_order(...)` | Submit new orders |
+| `reply_to_confirmation(reply_id, confirmed)` | Confirm interactive order dialogs |
+| `modify_order(...)` | Adjust active orders |
+| `cancel_order(...)` | Cancel active orders |
+| `get_open_orders()` | List active orders |
 
 ## Development
 
@@ -119,4 +196,4 @@ uv run python scripts/perf-check.py
 ```
 
 ## License
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License — see the [LICENSE](LICENSE) file for details.
