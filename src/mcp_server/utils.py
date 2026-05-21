@@ -14,7 +14,10 @@ def warn_if_slow(threshold: float = 2.0):
             result = await func(*args, **kwargs)
             duration = time.perf_counter() - start_time
             if duration > threshold:
-                warning = f"\nWARNING: Request took {duration:.2f}s (target: < {threshold}s)"
+                warning = (
+                    f"\nWARNING: Request took {duration:.2f}s "
+                    f"(target: < {threshold}s)"
+                )
                 if isinstance(result, str):
                     return result + warning
             return result
