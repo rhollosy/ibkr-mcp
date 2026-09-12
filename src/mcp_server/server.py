@@ -16,7 +16,7 @@ async def _keepalive_loop():
     while True:
         try:
             client = get_client()
-            await client.get_auth_status()
+            await client.tickle()
             logger.debug("Gateway keepalive heartbeat (tickle) sent.")
         except Exception as e:
             logger.warning(f"Error in keepalive loop: {e}")

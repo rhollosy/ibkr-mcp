@@ -19,7 +19,7 @@ class IBKRClient:
 
         # T007: Implement connection pooling (max_connections: 10, keepalive: 5s)
         limits = httpx.Limits(
-            max_connections=10, max_keepalive_connections=5, keepalive_expiry=5.0
+            max_connections=10, max_keepalive_connections=10, keepalive_expiry=5.0
         )
         self.client = httpx.AsyncClient(
             base_url=base_url, verify=verify_ssl, limits=limits, timeout=10.0
@@ -42,8 +42,12 @@ class IBKRClient:
             ) from e
 
     async def get_auth_status(self) -> dict[str, Any]:
-        """T009: Implement heartbeat/auth-status check method."""
-        return await self._request("GET", "/iserver/auth/status")
+        """Check authentication status."""
+        return await self._request("POST", "/iserver/auth/status")
+
+    async def tickle(self) -> dict[str, Any]:
+        """Ping the server to keep the session open."""
+        return await self._request("POST", "/tickle")
 
     async def get_accounts(self) -> list[Account]:
         """List all accounts."""
@@ -61,9 +65,9 @@ class IBKRClient:
 
     async def search_contract(self, symbol: str) -> list[Contract]:
         """Search for a contract by symbol."""
-        params = {"symbol": symbol}
+        payload = {"symbol": symbol}
         raw_contracts = await self._request(
-            "GET", "/iserver/secdef/search", params=params
+            "POST", "/iserver/secdef/search", json=payload
         )
         return [Contract.model_validate(c) for c in raw_contracts]
 
