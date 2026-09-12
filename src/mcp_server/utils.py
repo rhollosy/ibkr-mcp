@@ -26,14 +26,19 @@ def warn_if_slow(threshold: float = 2.0):
 
 def catch_errors():
     """T009b: Global error handling decorator for MCP tools."""
+    import logging
+    logger = logging.getLogger(__name__)
+
     def decorator(func):
         @wraps(func)
         async def wrapper(*args, **kwargs) -> Any:
             try:
                 return await func(*args, **kwargs)
             except IBKRError as e:
+                logger.error(f"IBKRError in {func.__name__}: {str(e)}")
                 return f"Error: {str(e)}"
             except Exception as e:
+                logger.error(f"Unexpected Error in {func.__name__}: {str(e)}")
                 return f"Unexpected Error: {str(e)}"
         return wrapper
     return decorator

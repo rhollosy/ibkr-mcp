@@ -39,7 +39,7 @@ async def test_keepalive_loop():
         with pytest.raises(asyncio.CancelledError):
             await _keepalive_loop()
         
-        mock_client.get_auth_status.assert_called_once()
+        mock_client.tickle.assert_called_once()
         mock_sleep.assert_any_call(180)
     mcp_server.server._ibkr_client = None
 
@@ -48,14 +48,14 @@ async def test_keepalive_loop():
 async def test_keepalive_loop_exception():
     import mcp_server.server
     mock_client = AsyncMock()
-    mock_client.get_auth_status.side_effect = Exception("HTTP failure")
+    mock_client.tickle.side_effect = Exception("HTTP failure")
     mcp_server.server._ibkr_client = mock_client
     
     with patch("asyncio.sleep", side_effect=[asyncio.CancelledError]):
         with pytest.raises(asyncio.CancelledError):
             await _keepalive_loop()
         
-        mock_client.get_auth_status.assert_called_once()
+        mock_client.tickle.assert_called_once()
     mcp_server.server._ibkr_client = None
 
 
