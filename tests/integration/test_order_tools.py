@@ -95,3 +95,67 @@ async def test_reply_to_confirmation_tool():
         result = await reply_to_confirmation("reply-123", True)
         assert "Reply Result" in result
         assert "submitted" in result
+
+
+@pytest.mark.asyncio
+async def test_place_order_sends_price_and_tif():
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.place_orders.return_value = [{"order_id": "1"}]
+        mock_get_client.return_value = mock_client
+
+        await place_order("U12345", 265598, "buy", 10, "lmt", 150.0)
+        mock_client.place_orders.assert_called_once_with(
+            "U12345",
+            [
+                {
+                    "conid": 265598,
+                    "side": "BUY",
+                    "quantity": 10,
+                    "orderType": "LMT",
+                    "tif": "DAY",
+                    "price": 150.0,
+                }
+            ],
+        )
+
+
+@pytest.mark.asyncio
+async def test_place_limit_order_requires_price():
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        result = await place_order("U12345", 265598, "BUY", 10, "LMT")
+        assert "price is required" in result
+        mock_get_client.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_place_order_confirmation_required():
+    mock_response = [{"id": "reply-1", "message": ["Are you sure?"]}]
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.place_orders.return_value = mock_response
+        mock_get_client.return_value = mock_client
+
+        result = await place_order("U12345", 265598, "BUY", 10, "MKT")
+        assert "CONFIRMATION REQUIRED (Reply ID: reply-1)" in result
+
+
+@pytest.mark.asyncio
+async def test_modify_order_sends_price():
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        mock_client = AsyncMock()
+        mock_client.modify_order.return_value = {"status": "ok"}
+        mock_get_client.return_value = mock_client
+
+        await modify_order("U12345", "1001", price=151.0)
+        mock_client.modify_order.assert_called_once_with(
+            "U12345", "1001", {"price": 151.0}
+        )
+
+
+@pytest.mark.asyncio
+async def test_modify_order_requires_a_change():
+    with patch("mcp_server.tools.get_client") as mock_get_client:
+        result = await modify_order("U12345", "1001")
+        assert "provide a new quantity and/or price" in result
+        mock_get_client.assert_not_called()

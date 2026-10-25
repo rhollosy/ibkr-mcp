@@ -52,12 +52,12 @@ async def test_get_market_data_error(mock_error_client):
 @pytest.mark.asyncio
 async def test_place_order_error(mock_error_client):
     mock_error_client.place_orders.side_effect = RequestError("Fail")
-    assert "Error: Fail" in await place_order("U1", 123, "BUY", 10, "LMT")
+    assert "Error: Fail" in await place_order("U1", 123, "BUY", 10, "LMT", 1.0)
 
 @pytest.mark.asyncio
 async def test_modify_order_error(mock_error_client):
     mock_error_client.modify_order.side_effect = RequestError("Fail")
-    assert "Error: Fail" in await modify_order("U1", "O1")
+    assert "Error: Fail" in await modify_order("U1", "O1", quantity=5)
 
 @pytest.mark.asyncio
 async def test_cancel_order_error(mock_error_client):
