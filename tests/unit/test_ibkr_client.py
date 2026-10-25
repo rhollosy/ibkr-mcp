@@ -3,7 +3,12 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 
-from ibkr.exceptions import AuthenticationError, GatewayTimeoutError, RequestError
+from ibkr.exceptions import (
+    AuthenticationError,
+    GatewayTimeoutError,
+    InvalidInputError,
+    RequestError,
+)
 
 
 @pytest.mark.asyncio
@@ -165,3 +170,63 @@ async def test_reply_to_confirmation(mock_client):
 
     res = await mock_client.reply_to_confirmation("reply_123", True)
     assert res[0]["orderId"] == "O1"
+
+
+@pytest.mark.asyncio
+async def test_request_read_timeout(mock_client):
+    mock_client.client.request.side_effect = httpx.ReadTimeout(
+        "Timed out", request=MagicMock()
+    )
+
+    with pytest.raises(GatewayTimeoutError):
+        await mock_client._request("GET", "/test")
+
+
+@pytest.mark.asyncio
+async def test_request_transport_error(mock_client):
+    mock_client.client.request.side_effect = httpx.RemoteProtocolError(
+        "Disconnected", request=MagicMock()
+    )
+
+    with pytest.raises(RequestError):
+        await mock_client._request("GET", "/test")
+
+
+@pytest.mark.asyncio
+async def test_request_invalid_json(mock_client):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b"<html>"
+    mock_response.json.side_effect = ValueError("Expecting value")
+    mock_client.client.request.return_value = mock_response
+
+    with pytest.raises(RequestError, match="invalid JSON"):
+        await mock_client._request("GET", "/test")
+
+
+@pytest.mark.asyncio
+async def test_request_empty_body(mock_client):
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_response.content = b""
+    mock_client.client.request.return_value = mock_response
+
+    assert await mock_client._request("POST", "/tickle") == {}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "call",
+    [
+        lambda c: c.get_account_summary("U1/../../iserver/account"),
+        lambda c: c.get_positions("U1?x=1"),
+        lambda c: c.place_orders("../U1", []),
+        lambda c: c.modify_order("U1", "1#frag", {}),
+        lambda c: c.cancel_order("U1", "../orders"),
+        lambda c: c.reply_to_confirmation("a/b", True),
+    ],
+)
+async def test_path_ids_are_validated(mock_client, call):
+    with pytest.raises(InvalidInputError):
+        await call(mock_client)
+    mock_client.client.request.assert_not_called()

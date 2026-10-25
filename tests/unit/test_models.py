@@ -62,3 +62,13 @@ def test_order_model():
     ord = Order(**data)
     assert ord.id == "O1001"
     assert ord.lmt_price == 150.0
+
+
+def test_market_data_model_parses_gateway_strings():
+    md = MarketDataSnapshot.model_validate(
+        {"conid": 1, "31": "C150.25", "84": "H149.5", "86": "1,234.50", "82": ""}
+    )
+    assert md.last == 150.25
+    assert md.bid == 149.5
+    assert md.ask == 1234.5
+    assert md.change is None

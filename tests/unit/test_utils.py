@@ -2,7 +2,7 @@ import asyncio
 
 import pytest
 
-from mcp_server.utils import warn_if_slow
+from mcp_server.utils import catch_errors, warn_if_slow
 
 
 @pytest.mark.asyncio
@@ -34,3 +34,14 @@ async def test_warn_if_slow_non_string():
     
     res = await slow_non_string()
     assert res == {"data": 123}
+
+
+@pytest.mark.asyncio
+async def test_catch_errors_unexpected_logs_traceback(caplog):
+    @catch_errors()
+    async def broken():
+        raise KeyError("boom")
+
+    res = await broken()
+    assert res.startswith("Unexpected Error:")
+    assert any(r.exc_info for r in caplog.records)

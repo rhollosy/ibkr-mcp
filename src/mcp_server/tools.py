@@ -117,18 +117,29 @@ async def place_order(
     side: str,
     quantity: float,
     order_type: str,
-    price: float | None = None
+    price: float | None = None,
+    tif: str = "DAY",
 ) -> str:
-    """Place a new order."""
+    """Place a new order.
+
+    side is BUY or SELL; order_type is e.g. MKT, LMT or STP. price is the limit
+    price for LMT orders and the stop price for STP orders. tif is the time in
+    force (e.g. DAY, GTC, IOC).
+    """
+    order_type = order_type.upper()
+    if order_type in ("LMT", "STP") and price is None:
+        return f"Error: price is required for {order_type} orders."
+
     client = get_client()
     order = {
         "conid": conid,
-        "side": side,
+        "side": side.upper(),
         "quantity": quantity,
         "orderType": order_type,
+        "tif": tif.upper(),
     }
-    if price:
-        order["lmtPrice"] = price
+    if price is not None:
+        order["price"] = price
 
     response = await client.place_orders(account_id, [order])
     msg = f"Order Result: {response}"
@@ -157,12 +168,15 @@ async def modify_order(
     price: float | None = None
 ) -> str:
     """Modify an existing order."""
-    client = get_client()
     data = {}
-    if quantity:
+    if quantity is not None:
         data["quantity"] = quantity
-    if price:
-        data["lmtPrice"] = price
+    if price is not None:
+        data["price"] = price
+    if not data:
+        return "Error: provide a new quantity and/or price to modify the order."
+
+    client = get_client()
 
     response = await client.modify_order(account_id, order_id, data)
     return f"Modify Result: {response}"

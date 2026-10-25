@@ -1,6 +1,6 @@
 from typing import Any
 
-from pydantic import AliasChoices, BaseModel, Field
+from pydantic import AliasChoices, BaseModel, Field, field_validator
 
 
 class IBKRBaseModel(BaseModel):
@@ -42,6 +42,16 @@ class MarketDataSnapshot(IBKRBaseModel):
     bid: float | None = Field(None, alias="84")
     ask: float | None = Field(None, alias="86")
     change: float | None = Field(None, alias="82")
+
+    @field_validator("last", "bid", "ask", "change", mode="before")
+    @classmethod
+    def _parse_price(cls, v: Any) -> Any:
+        # The Gateway returns snapshot fields as strings, e.g. "C150.25" (prior
+        # close), "H150.25" (halted) or "1,234.50". Blank means no data yet.
+        if isinstance(v, str):
+            v = v.strip().lstrip("CH").replace(",", "")
+            return v or None
+        return v
 
 class Order(IBKRBaseModel):
     id: str | None = Field(None, alias="orderId")
